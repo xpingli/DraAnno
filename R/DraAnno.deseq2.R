@@ -1,4 +1,4 @@
-#' A DraAnno function for Deinococcus radiodurans annotation
+#' A DraAnno function for adding Deinococcus radiodurans annotation
 #'
 #'DraAnno.edgeR takes 2 argument: the name of the edgeR processed csv file(containing "logFC","logCPM","LR","PValue","FDR" variables), and in second argument, select "up" and "down" to get either up regulation or down regulation (cutoff parameters are fixed at FDR < 0.05, logFC <= -1 or >=1). Default of write is TRUE, so it automatically writes an annotion term added csv file to your current directory. You can defined the csv file name in "...".
 #'
@@ -16,7 +16,7 @@
 #'
 #'
 #'@export
-DraAnno.edgeR <- function(dataset, select, ..., write = T ){
+DraAnno.deseq <- function(dataset, select, ..., write = T ){
 
 
 
@@ -24,14 +24,14 @@ DraAnno.edgeR <- function(dataset, select, ..., write = T ){
         names(Sig)[1] <- "refID"
 
         up <-  Sig %>%
-                filter(FDR <= 0.05 & logFC >= 1) %>%
-                select(refID, logFC)
+                filter(padj <= 0.05 & log2FoldChange >= 1) %>%
+                select(refID, log2FoldChange)
 
         down <-  Sig %>%
-                filter(FDR <= 0.05 & logFC <= -1) %>%
-                select(refID, logFC)
+                filter(padj <= 0.05 & log2FoldChange <= -1) %>%
+                select(refID, log2FoldChange)
 
-##=============================================================
+        ##=============================================================
         ## Construct annotation database from NCBI
 
 
@@ -57,7 +57,7 @@ DraAnno.edgeR <- function(dataset, select, ..., write = T ){
         # set strings as characters
         annotation_df <- data.frame(proteinID = pro.index, annotation = pro.annotation, stringsAsFactors = F)
 
-##===========================================================
+        ##===========================================================
         ## Construct a dataset that can bridge proteinID and refID
         kg <- keggConv("dra", "ncbi-proteinid")
         kg_split <- strsplit(names(kg), ":", fixed = TRUE)
@@ -81,7 +81,7 @@ DraAnno.edgeR <- function(dataset, select, ..., write = T ){
 
         # set strings as characters
         kg.index <- data.frame(refID = kg_refID, proteinID = kg_proteinID, stringsAsFactors = F)
-##========================================================
+        ##========================================================
 
         ## gene ID
         geneid <- keggConv("dra","ncbi-geneid")
@@ -107,8 +107,8 @@ DraAnno.edgeR <- function(dataset, select, ..., write = T ){
         ### annotation function
 
         dra_anno <- function(x){
-        # our dataset has to set first column to refID
-        # has to set as characters or it returns NA
+                # our dataset has to set first column to refID
+                # has to set as characters or it returns NA
                 sample_ref <- x$refID
                 lfc <- x$logFC
                 kg_ref <- kg.index$refID
@@ -133,7 +133,7 @@ DraAnno.edgeR <- function(dataset, select, ..., write = T ){
                         } else {
 
                                 proID[i] <- "Not in db"
-                                }
+                        }
 
                         if(sample_ref[i] %in% gene_ref ){
 
@@ -186,10 +186,10 @@ DraAnno.edgeR <- function(dataset, select, ..., write = T ){
 
                 warning("Return 'down' regulated genes but without creating a csv file")
 
-                } else {
+        } else {
 
                 warning("Define data set of 'up' or 'down' genes . If Write = F: not to write a .csv file of the annotated data.")
-                }
+        }
 
         annotated
 
